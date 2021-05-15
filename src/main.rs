@@ -15,7 +15,7 @@ struct Oh {
     version: bool,
 
     /// path to config file to use
-    #[argh(option, default = "config::DEFAULT_PATH.to_string()")]
+    #[argh(option, short = 'c', default = "config::DEFAULT_PATH.to_string()")]
     config: String,
 
     /// print to stdout instead of updating the hosts file
