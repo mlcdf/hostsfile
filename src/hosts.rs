@@ -7,13 +7,13 @@ use std::net;
 use super::config;
 
 #[cfg(target_os = "windows")]
-pub static LOCATION: &str = "C:\\Windows\\System32\\drivers\\etc";
+pub static OS_FILE: &str = "C:\\Windows\\System32\\drivers\\etc";
 
 #[cfg(target_os = "linux")]
-pub static LOCATION: &str = "/etc/hosts";
+pub static OS_FILE: &str = "/etc/hosts";
 
 #[cfg(target_os = "darwin")]
-pub static LOCATION: &str = "/private/etc/hosts";
+pub static OS_FILE: &str = "/private/etc/hosts";
 
 pub enum Status {
     Changed,
@@ -101,8 +101,8 @@ pub struct HostsFile {
 
 impl HostsFile {
     /// Opens and reads the host file
-    pub fn new(location: Option<String>) -> Result<Self, ErrorKind> {
-        let f = File::open(location.unwrap_or(LOCATION.to_string()));
+    pub fn open(location: String) -> Result<Self, ErrorKind> {
+        let f = File::open(location);
 
         let f = match f {
             Ok(file) => file,

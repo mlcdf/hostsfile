@@ -16,7 +16,7 @@ struct Oh {
     stdout: bool,
 
     /// path to hosts file; defaults to the OS file.
-    #[argh(option, default = "hosts::LOCATION.to_string()")]
+    #[argh(option, default = "hosts::OS_FILE.to_string()")]
     hostsfile: String,
 
     /// path to config file to use; defaults to ho.toml
@@ -41,11 +41,10 @@ fn main() {
         process::exit(1);
     });
 
-    let mut hosts_file =
-        hosts::HostsFile::new(Some(args.hostsfile.clone())).unwrap_or_else(|err| {
-            println!("{}", err);
-            process::exit(1);
-        });
+    let mut hosts_file = hosts::HostsFile::open(args.hostsfile.clone()).unwrap_or_else(|err| {
+        println!("{}", err);
+        process::exit(1);
+    });
 
     let mut out: Box<dyn io::Write> = if args.stdout == true {
         Box::new(io::stdout())
