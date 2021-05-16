@@ -49,7 +49,7 @@ struct ManagedLine {
 
 impl std::fmt::Display for ManagedLine {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
-        write!(f, "{:16} {}", self.ip, self.hostnames.join(" "))
+        write!(f, "{:15} {}", self.ip, self.hostnames.join(" "))
     }
 }
 
@@ -180,7 +180,7 @@ impl HostsFile {
         let mut buf_writer = BufWriter::new(writer);
         buf_writer.write(self.before_lines.join("\n").as_bytes())?;
 
-        buf_writer.write("\n\n".as_bytes())?;
+        buf_writer.write("\n".as_bytes())?;
         buf_writer.write(BEGIN_TAG.as_bytes())?;
         buf_writer.write("\n".as_bytes())?;
 
@@ -189,7 +189,7 @@ impl HostsFile {
         }
 
         buf_writer.write(END_TAG.as_bytes())?;
-        buf_writer.write("\n\n".as_bytes())?;
+        buf_writer.write("\n".as_bytes())?;
 
         buf_writer.write(self.after_lines.join("\n").as_bytes())?;
 
