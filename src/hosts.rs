@@ -20,7 +20,7 @@ enum LineKind {
     After,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct ManagedLine {
     ip: net::IpAddr,
     hostnames: Vec<String>,
@@ -32,7 +32,7 @@ impl std::string::ToString for ManagedLine {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct HostsFile {
     before_lines: Vec<String>,
     managed_lines: Vec<ManagedLine>,
