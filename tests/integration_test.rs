@@ -2,22 +2,39 @@ use ho;
 
 #[test]
 fn test_open_existing_file() {
-    let _ = ho::hosts::HostsFile::open("tests/fixtures/hostsfile".to_string()).unwrap();
+    ho::hosts::HostsFile::open("tests/fixtures/hostsfile".to_string()).unwrap();
 }
 
 #[test]
+#[should_panic]
 fn test_fail_open_missing_file() {
-    let result = ho::hosts::HostsFile::open("tests/fixtures/do-not-exists".to_string());
-    assert_eq!(result.is_err(), true)
+    ho::hosts::HostsFile::open("tests/fixtures/do-not-exists".to_string()).unwrap();
 }
 
 #[test]
+#[should_panic]
 fn test_missing_end_tag_file() {
-    let result = ho::hosts::HostsFile::open("tests/fixtures/missing-end-hostsfile".to_string());
-    assert_eq!(result.is_err(), true)
+    ho::hosts::HostsFile::open("tests/fixtures/missing-end-hostsfile".to_string()).unwrap();
 }
 
 #[test]
 fn test_file_with_tags() {
-    let _ = ho::hosts::HostsFile::open("tests/fixtures/hostsfile-with-tags".to_string()).unwrap();
+    let mut hostsfile =
+        ho::hosts::HostsFile::open("tests/fixtures/hostsfile-with-tags".to_string()).unwrap();
+
+    let mut writer = Vec::new();
+    let mut cfg = ho::config::Hosts::new();
+
+    let ip: std::net::IpAddr = "127.0.0.2".parse().unwrap();
+    cfg.insert(ip, vec!["pi.mlcdf.fr".to_string()]);
+
+    hostsfile.write(&cfg, &mut writer).unwrap();
+
+    let got = std::str::from_utf8(&writer).unwrap();
+
+    let expected = std::fs::read_to_string("tests/fixtures/hostsfile-with-tags.result".to_string())
+        .expect("Something went wrong reading the file");
+
+    // println!("{:}", got);
+    assert_eq!(got, expected);
 }
