@@ -13,4 +13,4 @@ ff02::2 ip6-allrouters
 
 # BEGIN ho — DO NOT REMOVE THIS LINE
 127.0.0.1       localhost
-127.0.0.1       localhost
+# END ho — DO NOT REMOVE THIS LINE

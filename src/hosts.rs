@@ -1,4 +1,5 @@
 use anyhow::{Error, Result};
+use regex::Regex;
 
 use std::fmt;
 use std::fs::File;
@@ -107,7 +108,9 @@ impl HostsFile {
             match line_kind {
                 LineKind::Before => before_lines.push(line),
                 LineKind::Managed => {
-                    let matched: Vec<&str> = line.split(r"\s+").collect();
+                    let re = Regex::new(r"\s+")?;
+                    let matched: Vec<&str> = re.split(&line).collect();
+
                     let parsed_line = ManagedLine {
                         ip: matched[0].parse().map_err(Error::new)?,
                         hostnames: matched[1]
