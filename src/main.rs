@@ -33,17 +33,17 @@ fn main() {
     let args: Oh = argh::from_env();
 
     if args.version {
-        println!(std::env!("CARGO_PKG_VERSION"));
+        eprintln!(std::env!("CARGO_PKG_VERSION"));
         process::exit(0);
     }
 
     let cfg: config::Hosts = confy::load_path(args.config).unwrap_or_else(|err| {
-        println!("failed to load file {}: {}", config::DEFAULT_PATH, err);
+        eprintln!("failed to load file {}: {}", config::DEFAULT_PATH, err);
         process::exit(1);
     });
 
     let mut hosts_file = hosts::HostsFile::open(args.hostsfile.clone()).unwrap_or_else(|err| {
-        println!("{}", err);
+        eprintln!("{}", err);
         process::exit(1);
     });
 
@@ -57,7 +57,7 @@ fn main() {
         {
             Ok(f) => Box::new(f),
             Err(err) => {
-                println!("failed to open {}: {}", args.hostsfile, err);
+                eprintln!("failed to open {}: {}", args.hostsfile, err);
                 process::exit(1);
             }
         }
@@ -66,7 +66,7 @@ fn main() {
     match hosts_file.write(&cfg, &mut out) {
         Ok(status @ hosts::Status::NotChanged) | Ok(status @ hosts::Status::Changed) => {
             if args.stdout == false {
-                println!("{}", status)
+                eprintln!("{}", status)
             }
         }
         Err(err) => {
@@ -76,7 +76,7 @@ fn main() {
                 args.hostsfile
             };
 
-            println!("failed to write {}: {}", out, err);
+            eprintln!("failed to write {}: {}", out, err);
             process::exit(1);
         }
     };
