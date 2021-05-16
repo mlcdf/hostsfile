@@ -1,4 +1,4 @@
-use std::fs;
+use std::fs::OpenOptions;
 use std::io;
 use std::process;
 
@@ -50,7 +50,11 @@ fn main() {
     let mut out: Box<dyn io::Write> = if args.stdout == true {
         Box::new(io::stdout())
     } else {
-        match fs::File::open(args.hostsfile.clone()) {
+        match OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(args.hostsfile.clone())
+        {
             Ok(f) => Box::new(f),
             Err(err) => {
                 println!("failed to open {}: {}", args.hostsfile, err);

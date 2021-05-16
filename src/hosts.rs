@@ -102,7 +102,7 @@ pub struct HostsFile {
 impl HostsFile {
     /// Opens and reads the host file
     pub fn open(location: String) -> Result<Self, ErrorKind> {
-        let f = File::open(location);
+        let f = std::fs::File::open(location);
 
         let f = match f {
             Ok(file) => file,
