@@ -1,3 +1,5 @@
+use anyhow::{Error, Result};
+
 use std::fmt;
 use std::fs::File;
 use std::io::BufWriter;
@@ -35,42 +37,6 @@ enum LineKind {
     After,
 }
 
-#[derive(Debug)]
-pub enum ErrorKind {
-    Io(std::io::Error),
-    Parse(MissingEndTagError),
-}
-
-impl From<std::io::Error> for ErrorKind {
-    fn from(error: std::io::Error) -> Self {
-        ErrorKind::Io(error)
-    }
-}
-
-impl From<MissingEndTagError> for ErrorKind {
-    fn from(error: MissingEndTagError) -> Self {
-        ErrorKind::Parse(error)
-    }
-}
-
-impl fmt::Display for ErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            ErrorKind::Io(ref err) => write!(f, "IO error: {}", err),
-            ErrorKind::Parse(ref err) => write!(f, "Parse error: {}", err),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct MissingEndTagError;
-
-impl fmt::Display for MissingEndTagError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "BEGIN tag found but END tag is missing")
-    }
-}
-
 const BEGIN_TAG: &str = "# BEGIN ho — DO NOT REMOVE THIS LINE";
 const END_TAG: &str = "# END ho — DO NOT REMOVE THIS LINE";
 
@@ -101,13 +67,8 @@ pub struct HostsFile {
 
 impl HostsFile {
     /// Opens and reads the host file
-    pub fn open(location: String) -> Result<Self, ErrorKind> {
-        let f = std::fs::File::open(location);
-
-        let f = match f {
-            Ok(file) => file,
-            Err(e) => return Err(ErrorKind::Io(e)),
-        };
+    pub fn open(location: String) -> Result<Self, Error> {
+        let f = std::fs::File::open(location).map_err(Error::new)?;
 
         let reader = BufReader::new(f);
 
@@ -125,7 +86,7 @@ impl HostsFile {
 
     fn parse(
         reader: BufReader<File>,
-    ) -> Result<(Vec<String>, Vec<ManagedLine>, Vec<String>), ErrorKind> {
+    ) -> Result<(Vec<String>, Vec<ManagedLine>, Vec<String>), Error> {
         let mut before_lines: Vec<String> = Vec::new();
         let mut managed_lines: Vec<ManagedLine> = Vec::new();
         let mut after_lines: Vec<String> = Vec::new();
@@ -133,37 +94,36 @@ impl HostsFile {
         let mut line_kind = LineKind::Before;
 
         for line in reader.lines() {
-            match line {
-                Ok(line) => {
-                    if line == BEGIN_TAG {
-                        line_kind = LineKind::Managed;
-                    } else if line == END_TAG {
-                        line_kind = LineKind::After;
-                    }
+            let line = line.map_err(Error::new)?;
 
-                    match line_kind {
-                        LineKind::Before => before_lines.push(line),
-                        LineKind::Managed => {
-                            let matched: Vec<&str> = line.split(r"\s+").collect();
-                            let parsed_line = ManagedLine {
-                                ip: matched[0].parse().unwrap(),
-                                hostnames: matched[1]
-                                    .trim()
-                                    .split(" ")
-                                    .map(|x| x.to_string())
-                                    .collect(),
-                            };
-                            managed_lines.push(parsed_line);
-                        }
-                        LineKind::After => after_lines.push(line),
+            if line == BEGIN_TAG {
+                line_kind = LineKind::Managed;
+                continue;
+            } else if line == END_TAG {
+                line_kind = LineKind::After;
+                continue;
+            }
+
+            match line_kind {
+                LineKind::Before => before_lines.push(line),
+                LineKind::Managed => {
+                    let matched: Vec<&str> = line.split(r"\s+").collect();
+                    let parsed_line = ManagedLine {
+                        ip: matched[0].parse().map_err(Error::new)?,
+                        hostnames: matched[1]
+                            .trim()
+                            .split(" ")
+                            .map(|x| x.to_string())
+                            .collect(),
                     };
+                    managed_lines.push(parsed_line);
                 }
-                Err(err) => return Err(ErrorKind::Io(err)),
+                LineKind::After => after_lines.push(line),
             };
         }
 
         match line_kind {
-            LineKind::Managed => return Err(ErrorKind::Parse(MissingEndTagError)),
+            LineKind::Managed => Err(Error::msg("BEGIN tag found but END tag is missing")),
             _ => Ok((before_lines, managed_lines, after_lines)),
         }
     }
@@ -172,7 +132,7 @@ impl HostsFile {
         &mut self,
         entries: &config::Hosts,
         writer: &mut impl std::io::Write,
-    ) -> Result<Status, ErrorKind> {
+    ) -> Result<Status, Error> {
         if !self.has_changed(entries) {
             return Ok(Status::NotChanged);
         }
@@ -213,7 +173,7 @@ impl HostsFile {
             .collect();
     }
 
-    fn render(&mut self, writer: &mut impl std::io::Write) -> Result<(), ErrorKind> {
+    fn render(&mut self, writer: &mut impl std::io::Write) -> Result<(), Error> {
         let mut buf_writer = BufWriter::new(writer);
         buf_writer.write(self.before_lines.join("\n").as_bytes())?;
 
