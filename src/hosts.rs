@@ -1,3 +1,4 @@
+use std::fmt;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::{BufRead, BufReader, Write};
@@ -18,6 +19,30 @@ enum LineKind {
     Before,
     Managed,
     After,
+}
+
+#[derive(Debug)]
+pub enum ErrorKind {
+    Io(std::io::Error),
+    Parse(MissingEndTagError),
+}
+
+impl fmt::Display for ErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            ErrorKind::Io(ref err) => write!(f, "IO error: {}", err),
+            ErrorKind::Parse(ref err) => write!(f, "Parse error: {}", err),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct MissingEndTagError;
+
+impl fmt::Display for MissingEndTagError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "invalid first item to double")
+    }
 }
 
 const BEGIN_TAG: &str = "# BEGIN ho — DO NOT REMOVE THIS LINE";
@@ -44,12 +69,12 @@ pub struct HostsFile {
 
 impl HostsFile {
     /// Opens and reads the host file
-    pub fn new() -> Result<Self, std::io::Error> {
+    pub fn new() -> Result<Self, ErrorKind> {
         let f = File::open(LOCATION);
 
         let f = match f {
             Ok(file) => file,
-            Err(e) => return Err(e),
+            Err(e) => return Err(ErrorKind::Io(e)),
         };
 
         let reader = BufReader::new(f);
@@ -68,7 +93,7 @@ impl HostsFile {
 
     fn parse(
         reader: BufReader<File>,
-    ) -> Result<(Vec<String>, Vec<ManagedLine>, Vec<String>), std::io::Error> {
+    ) -> Result<(Vec<String>, Vec<ManagedLine>, Vec<String>), ErrorKind> {
         let mut before_lines: Vec<String> = Vec::new();
         let mut managed_lines: Vec<ManagedLine> = Vec::new();
         let mut after_lines: Vec<String> = Vec::new();
@@ -101,11 +126,14 @@ impl HostsFile {
                         LineKind::After => after_lines.push(line),
                     };
                 }
-                Err(err) => return Err(err),
+                Err(err) => return Err(ErrorKind::Io(err)),
             };
         }
 
-        Ok((before_lines, managed_lines, after_lines))
+        match line_kind {
+            LineKind::Managed => return Err(ErrorKind::Parse(MissingEndTagError)),
+            _ => Ok((before_lines, managed_lines, after_lines)),
+        }
     }
 
     pub fn append(&mut self, entries: &config::Hosts) {
