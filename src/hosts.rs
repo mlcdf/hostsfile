@@ -20,6 +20,9 @@ enum LineKind {
     After,
 }
 
+const BEGIN_TAG: &str = "# BEGIN ho — DO NOT REMOVE THIS LINE";
+const END_TAG: &str = "# END ho — DO NOT REMOVE THIS LINE";
+
 #[derive(Debug)]
 struct ManagedLine {
     ip: net::IpAddr,
@@ -39,10 +42,30 @@ pub struct HostsFile {
     after_lines: Vec<String>,
 }
 
-const BEGIN_TAG: &str = "# BEGIN ho — DO NOT REMOVE THIS LINE";
-const END_TAG: &str = "# END ho — DO NOT REMOVE THIS LINE";
-
 impl HostsFile {
+    /// Opens and reads the host file
+    pub fn new() -> Result<Self, std::io::Error> {
+        let f = File::open(LOCATION);
+
+        let f = match f {
+            Ok(file) => file,
+            Err(e) => return Err(e),
+        };
+
+        let reader = BufReader::new(f);
+
+        match HostsFile::parse(reader) {
+            Ok((before_lines, managed_lines, after_lines)) => {
+                return Ok(Self {
+                    before_lines,
+                    managed_lines,
+                    after_lines,
+                })
+            }
+            Err(err) => return Err(err),
+        };
+    }
+
     fn parse(
         reader: BufReader<File>,
     ) -> Result<(Vec<String>, Vec<ManagedLine>, Vec<String>), std::io::Error> {
@@ -83,29 +106,6 @@ impl HostsFile {
         }
 
         Ok((before_lines, managed_lines, after_lines))
-    }
-
-    /// Opens and reads the host file
-    pub fn new() -> Result<Self, std::io::Error> {
-        let f = File::open(LOCATION);
-
-        let f = match f {
-            Ok(file) => file,
-            Err(e) => return Err(e),
-        };
-
-        let reader = BufReader::new(f);
-
-        match HostsFile::parse(reader) {
-            Ok((before_lines, managed_lines, after_lines)) => {
-                return Ok(Self {
-                    before_lines,
-                    managed_lines,
-                    after_lines,
-                })
-            }
-            Err(err) => return Err(err),
-        };
     }
 
     pub fn append(&mut self, entries: &config::Hosts) {
