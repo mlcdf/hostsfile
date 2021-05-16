@@ -15,6 +15,10 @@ struct Oh {
     #[argh(switch)]
     stdout: bool,
 
+    /// path to hosts file; defaults to the OS file.
+    #[argh(option)]
+    hostsfile: Option<String>,
+
     /// path to config file to use; defaults to ho.toml
     #[argh(option, short = 'c', default = "config::DEFAULT_PATH.to_string()")]
     config: String,
@@ -37,7 +41,7 @@ fn main() {
         process::exit(1);
     });
 
-    let mut hosts_file = hosts::HostsFile::new().unwrap_or_else(|err| {
+    let mut hosts_file = hosts::HostsFile::new(args.hostsfile).unwrap_or_else(|err| {
         println!("{}", err);
         process::exit(1);
     });

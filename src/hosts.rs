@@ -69,8 +69,8 @@ pub struct HostsFile {
 
 impl HostsFile {
     /// Opens and reads the host file
-    pub fn new() -> Result<Self, ErrorKind> {
-        let f = File::open(LOCATION);
+    pub fn new(location: Option<String>) -> Result<Self, ErrorKind> {
+        let f = File::open(location.unwrap_or(LOCATION.to_string()));
 
         let f = match f {
             Ok(file) => file,
