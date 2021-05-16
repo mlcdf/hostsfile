@@ -56,7 +56,7 @@ struct ManagedLine {
 
 impl std::fmt::Display for ManagedLine {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
-        write!(f, "{:16} {}\n", self.ip, self.hostnames.join(" "))
+        write!(f, "{:16} {}", self.ip, self.hostnames.join(" "))
     }
 }
 
