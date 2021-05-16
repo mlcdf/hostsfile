@@ -1,8 +1,9 @@
-use confy;
-
+use std::fs;
+use std::io;
 use std::process;
 
 use argh::FromArgs;
+use confy;
 
 mod config;
 mod hosts;
@@ -10,17 +11,17 @@ mod hosts;
 #[derive(FromArgs)]
 /// Manage your hosts file
 struct Oh {
-    /// show the version
-    #[argh(switch, short = 'V')]
-    version: bool,
+    /// output to stdout instead of updating the hosts file
+    #[argh(switch)]
+    stdout: bool,
 
-    /// path to config file to use
+    /// path to config file to use; defaults to ho.toml
     #[argh(option, short = 'c', default = "config::DEFAULT_PATH.to_string()")]
     config: String,
 
-    /// print to stdout instead of updating the hosts file
-    #[argh(switch)]
-    dry_run: bool,
+    /// show the version
+    #[argh(switch, short = 'V')]
+    version: bool,
 }
 
 fn main() {
@@ -32,7 +33,7 @@ fn main() {
     }
 
     let cfg: config::Hosts = confy::load_path(args.config).unwrap_or_else(|err| {
-        println!("{}", err);
+        println!("failed to load file {}: {}", config::DEFAULT_PATH, err);
         process::exit(1);
     });
 
@@ -43,20 +44,20 @@ fn main() {
 
     hosts_file.append(&cfg);
 
-    let mut out: Box<dyn std::io::Write> = if args.dry_run == true {
-        Box::new(std::io::stdout())
+    let mut out: Box<dyn io::Write> = if args.stdout == true {
+        Box::new(io::stdout())
     } else {
-        match std::fs::File::open(config::DEFAULT_PATH) {
+        match fs::File::open(config::DEFAULT_PATH) {
             Ok(f) => Box::new(f),
             Err(err) => {
-                println!("{}", err);
+                println!("failed to open {}: {}", config::DEFAULT_PATH, err);
                 process::exit(1);
             }
         }
     };
 
     hosts_file.format(&mut out).unwrap_or_else(|err| {
-        println!("{}", err);
+        println!("failed to write to file: {}", err);
         process::exit(1);
     });
 }
