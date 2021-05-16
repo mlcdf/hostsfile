@@ -26,9 +26,9 @@ struct ManagedLine {
     hostnames: Vec<String>,
 }
 
-impl std::string::ToString for ManagedLine {
-    fn to_string(&self) -> std::string::String {
-        return format!("{} {:?}", self.ip, self.hostnames);
+impl std::fmt::Display for ManagedLine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "{:16} {}\n", self.ip, self.hostnames.join(" "))
     }
 }
 
@@ -129,8 +129,7 @@ impl HostsFile {
         buf_writer.write("\n".as_bytes())?;
 
         for line in self.managed_lines {
-            buf_writer
-                .write(format!("{:16} {}\n", line.ip, line.hostnames.join(" ")).as_bytes())?;
+            buf_writer.write(format!("{}\n", line).as_bytes())?;
         }
 
         buf_writer.write(END_TAG.as_bytes())?;
