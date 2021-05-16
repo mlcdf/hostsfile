@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::{BufRead, BufReader, Write};
@@ -109,14 +108,13 @@ impl HostsFile {
         };
     }
 
-    pub fn append(&mut self, entries: &config::Hosts) -> Result<(), Box<dyn Error>> {
+    pub fn append(&mut self, entries: &config::Hosts) {
         for (ip, hostnames) in entries.iter() {
             self.managed_lines.push(ManagedLine {
                 ip: *ip,
                 hostnames: hostnames.to_vec(),
             })
         }
-        Ok(())
     }
 
     pub fn format(

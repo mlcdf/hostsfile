@@ -41,10 +41,7 @@ fn main() {
         process::exit(1);
     });
 
-    hosts_file.append(&cfg).unwrap_or_else(|err| {
-        println!("{}", err);
-        process::exit(1);
-    });
+    hosts_file.append(&cfg);
 
     let mut out: Box<dyn std::io::Write> = if args.dry_run == true {
         Box::new(std::io::stdout())
