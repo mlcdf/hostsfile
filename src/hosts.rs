@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::BufWriter;
+use std::io::{BufRead, BufReader, Write};
 use std::net;
 
 use super::config;
@@ -85,6 +86,7 @@ impl HostsFile {
         Ok((before_lines, managed_lines, after_lines))
     }
 
+    /// Opens and reads the host file
     pub fn new() -> Result<Self, std::io::Error> {
         let f = File::open(LOCATION);
 
@@ -121,20 +123,23 @@ impl HostsFile {
         self,
         writer: &mut impl std::io::Write,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        writer.write(self.before_lines.join("\n").as_bytes())?;
+        let mut buf_writer = BufWriter::new(writer);
+        buf_writer.write(self.before_lines.join("\n").as_bytes())?;
 
-        writer.write("\n\n".as_bytes())?;
-        writer.write(BEGIN_TAG.as_bytes())?;
-        writer.write("\n".as_bytes())?;
+        buf_writer.write("\n\n".as_bytes())?;
+        buf_writer.write(BEGIN_TAG.as_bytes())?;
+        buf_writer.write("\n".as_bytes())?;
 
         for line in self.managed_lines {
-            writer.write(format!("{:16} {}\n", line.ip, line.hostnames.join(" ")).as_bytes())?;
+            buf_writer
+                .write(format!("{:16} {}\n", line.ip, line.hostnames.join(" ")).as_bytes())?;
         }
 
-        writer.write(END_TAG.as_bytes())?;
-        writer.write("\n\n".as_bytes())?;
+        buf_writer.write(END_TAG.as_bytes())?;
+        buf_writer.write("\n\n".as_bytes())?;
 
-        writer.write(self.after_lines.join("\n").as_bytes())?;
-        Ok(())
+        buf_writer.write(self.after_lines.join("\n").as_bytes())?;
+
+        Ok(buf_writer.flush()?)
     }
 }
