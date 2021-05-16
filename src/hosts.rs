@@ -41,7 +41,7 @@ pub struct MissingEndTagError;
 
 impl fmt::Display for MissingEndTagError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "invalid first item to double")
+        write!(f, "BEGIN tag found but END tag is missing")
     }
 }
 
