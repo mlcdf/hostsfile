@@ -5,8 +5,9 @@ use std::process;
 use argh::FromArgs;
 use confy;
 
-use ho::config;
-use ho::hosts;
+use hostsfile;
+
+pub static DEFAULT_PATH: &str = "ho.toml";
 
 #[derive(FromArgs)]
 /// Manage your hosts file
@@ -16,11 +17,11 @@ struct Oh {
     stdout: bool,
 
     /// path to hosts file; defaults to the OS file.
-    #[argh(option, default = "hosts::OS_FILE.to_string()")]
+    #[argh(option, default = "hostsfile::OS_FILE.to_string()")]
     hostsfile: String,
 
     /// path to config file to use; defaults to ho.toml
-    #[argh(option, short = 'c', default = "config::DEFAULT_PATH.to_string()")]
+    #[argh(option, short = 'c', default = "DEFAULT_PATH.to_string()")]
     config: String,
 
     /// show the version
@@ -36,12 +37,12 @@ fn main() {
         process::exit(0);
     }
 
-    let cfg: config::Hosts = confy::load_path(args.config).unwrap_or_else(|err| {
-        eprintln!("failed to load file {}: {}", config::DEFAULT_PATH, err);
+    let cfg: hostsfile::Entries = confy::load_path(&args.config).unwrap_or_else(|err| {
+        eprintln!("failed to load file {}: {}", args.config, err);
         process::exit(1);
     });
 
-    let mut hosts_file = hosts::File::open(&args.hostsfile).unwrap_or_else(|err| {
+    let mut hosts_file = hostsfile::File::open(&args.hostsfile).unwrap_or_else(|err| {
         eprintln!("{}", err);
         process::exit(1);
     });
@@ -63,7 +64,7 @@ fn main() {
     };
 
     match hosts_file.write(&cfg, &mut out) {
-        Ok(status @ hosts::Status::NotChanged) | Ok(status @ hosts::Status::Changed) => {
+        Ok(status @ hostsfile::Status::NotChanged) | Ok(status @ hostsfile::Status::Changed) => {
             if args.stdout == false {
                 eprintln!("{}", status)
             }

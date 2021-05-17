@@ -1,7 +1,7 @@
 [package]
 authors = ["Maxime Le Conte des Floris"]
 edition = "2018"
-name = "ho"
+name = "hostsfile"
 repository = "https://github.com/mlcdf/ho"
 version = "0.1.0"
 
