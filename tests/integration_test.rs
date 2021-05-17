@@ -1,29 +1,30 @@
-use ho;
+use ho::config;
+use ho::hosts;
 
 #[test]
 fn test_open_existing_file() {
-    ho::hosts::HostsFile::open("tests/fixtures/hostsfile".to_string()).unwrap();
+    hosts::File::open("tests/fixtures/hostsfile".to_string()).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn test_fail_open_missing_file() {
-    ho::hosts::HostsFile::open("tests/fixtures/do-not-exists".to_string()).unwrap();
+    hosts::File::open("tests/fixtures/do-not-exists".to_string()).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn test_missing_end_tag_file() {
-    ho::hosts::HostsFile::open("tests/fixtures/missing-end-hostsfile".to_string()).unwrap();
+    hosts::File::open("tests/fixtures/missing-end-hostsfile".to_string()).unwrap();
 }
 
 #[test]
 fn test_file_with_tags() {
     let mut hostsfile =
-        ho::hosts::HostsFile::open("tests/fixtures/hostsfile-with-tags".to_string()).unwrap();
+        hosts::File::open("tests/fixtures/hostsfile-with-tags".to_string()).unwrap();
 
     let mut writer = Vec::new();
-    let mut cfg = ho::config::Hosts::new();
+    let mut cfg = config::Hosts::new();
 
     let ip: std::net::IpAddr = "127.0.0.2".parse().unwrap();
     cfg.insert(ip, vec!["pi.mlcdf.fr".to_string()]);

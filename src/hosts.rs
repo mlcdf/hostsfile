@@ -1,11 +1,10 @@
+use std::fmt;
+use std::fs;
+use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::net;
+
 use anyhow::{Error, Result};
 use regex::Regex;
-
-use std::fmt;
-use std::fs::File;
-use std::io::BufWriter;
-use std::io::{BufRead, BufReader, Write};
-use std::net;
 
 use super::config;
 
@@ -60,22 +59,22 @@ impl PartialEq for ManagedLine {
 }
 
 #[derive(Debug)]
-pub struct HostsFile {
+pub struct File {
     before_lines: Vec<String>,
     managed_lines: Vec<ManagedLine>,
     after_lines: Vec<String>,
 }
 
-impl HostsFile {
+impl File {
     /// Opens and reads the host file
     pub fn open(location: String) -> Result<Self, Error> {
-        let f = std::fs::File::open(location).map_err(Error::new)?;
+        let f = fs::File::open(location).map_err(Error::new)?;
 
         let reader = BufReader::new(f);
 
-        match HostsFile::parse(reader) {
+        match File::parse(reader) {
             Ok((before_lines, managed_lines, after_lines)) => {
-                return Ok(Self {
+                return Ok(File {
                     before_lines,
                     managed_lines,
                     after_lines,
@@ -86,7 +85,7 @@ impl HostsFile {
     }
 
     fn parse(
-        reader: BufReader<File>,
+        reader: BufReader<fs::File>,
     ) -> Result<(Vec<String>, Vec<ManagedLine>, Vec<String>), Error> {
         let mut before_lines: Vec<String> = Vec::new();
         let mut managed_lines: Vec<ManagedLine> = Vec::new();

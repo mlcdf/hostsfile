@@ -1,4 +1,4 @@
-use std::fs::OpenOptions;
+use std::fs;
 use std::io;
 use std::process;
 
@@ -42,7 +42,7 @@ fn main() {
         process::exit(1);
     });
 
-    let mut hosts_file = hosts::HostsFile::open(args.hostsfile.clone()).unwrap_or_else(|err| {
+    let mut hosts_file = hosts::File::open(args.hostsfile.clone()).unwrap_or_else(|err| {
         eprintln!("{}", err);
         process::exit(1);
     });
@@ -50,7 +50,7 @@ fn main() {
     let mut out: Box<dyn io::Write> = if args.stdout == true {
         Box::new(io::stdout())
     } else {
-        match OpenOptions::new()
+        match fs::OpenOptions::new()
             .read(true)
             .write(true)
             .open(args.hostsfile.clone())
