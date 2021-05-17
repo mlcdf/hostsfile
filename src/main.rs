@@ -5,7 +5,6 @@ use std::process;
 use argh::FromArgs;
 use confy;
 
-use ho;
 use ho::config;
 use ho::hosts;
 
@@ -17,11 +16,11 @@ struct Oh {
     stdout: bool,
 
     /// path to hosts file; defaults to the OS file.
-    #[argh(option, default = "ho::hosts::OS_FILE.to_string()")]
+    #[argh(option, default = "hosts::OS_FILE.to_string()")]
     hostsfile: String,
 
     /// path to config file to use; defaults to ho.toml
-    #[argh(option, short = 'c', default = "ho::config::DEFAULT_PATH.to_string()")]
+    #[argh(option, short = 'c', default = "config::DEFAULT_PATH.to_string()")]
     config: String,
 
     /// show the version
