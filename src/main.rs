@@ -41,7 +41,7 @@ fn main() {
         process::exit(1);
     });
 
-    let mut hosts_file = hosts::File::open(args.hostsfile.clone()).unwrap_or_else(|err| {
+    let mut hosts_file = hosts::File::open(&args.hostsfile).unwrap_or_else(|err| {
         eprintln!("{}", err);
         process::exit(1);
     });
@@ -52,7 +52,7 @@ fn main() {
         match fs::OpenOptions::new()
             .read(true)
             .write(true)
-            .open(args.hostsfile.clone())
+            .open(&args.hostsfile)
         {
             Ok(f) => Box::new(f),
             Err(err) => {

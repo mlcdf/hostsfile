@@ -2,6 +2,7 @@ use std::fmt;
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::net;
+use std::path::Path;
 
 use anyhow::{Error, Result};
 use regex::Regex;
@@ -67,8 +68,8 @@ pub struct File {
 
 impl File {
     /// Opens and reads the host file
-    pub fn open(location: String) -> Result<Self, Error> {
-        let f = fs::File::open(location).map_err(Error::new)?;
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        let f = fs::File::open(path).map_err(Error::new)?;
 
         let reader = BufReader::new(f);
 
