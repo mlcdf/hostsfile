@@ -1,12 +1,13 @@
-use std::collections;
 use std::fmt;
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::net;
 use std::path::Path;
+use std::str::FromStr;
 
 use anyhow::{Error, Result};
 use regex::Regex;
+use serde_derive::{Deserialize, Serialize};
 
 #[cfg(target_os = "windows")]
 pub static OS_FILE: &str = "C:\\Windows\\System32\\drivers\\etc";
@@ -16,8 +17,6 @@ pub static OS_FILE: &str = "/etc/hosts";
 
 #[cfg(target_os = "darwin")]
 pub static OS_FILE: &str = "/private/etc/hosts";
-
-pub type Entries = collections::HashMap<net::IpAddr, Vec<String>>;
 
 pub enum Status {
     Changed,
@@ -42,20 +41,38 @@ enum LineKind {
 const BEGIN_TAG: &str = "# BEGIN ho — DO NOT REMOVE THIS LINE";
 const END_TAG: &str = "# END ho — DO NOT REMOVE THIS LINE";
 
-#[derive(Debug)]
-struct ManagedLine {
-    ip: net::IpAddr,
-    hostnames: Vec<String>,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Entry {
+    pub ip: net::IpAddr,
+    pub hostnames: Vec<String>,
 }
 
-impl std::fmt::Display for ManagedLine {
+impl FromStr for Entry {
+    fn from_str(s: &str) -> Result<Entry, Error> {
+        let re = Regex::new(r"\s+")?;
+        let matched: Vec<&str> = re.split(&s).collect();
+
+        Ok(Entry {
+            ip: matched[0].parse().map_err(Error::new)?,
+            hostnames: matched[1]
+                .trim()
+                .split(" ")
+                .map(|x| x.to_string())
+                .collect(),
+        })
+    }
+    type Err = Error;
+}
+
+impl std::fmt::Display for Entry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         write!(f, "{:15} {}", self.ip, self.hostnames.join(" "))
     }
 }
 
-impl PartialEq for ManagedLine {
+impl PartialEq for Entry {
     fn eq(&self, other: &Self) -> bool {
+        // not pretty but works great
         format!("{}", self) == format!("{}", other)
     }
 }
@@ -63,7 +80,7 @@ impl PartialEq for ManagedLine {
 #[derive(Debug)]
 pub struct File {
     before_lines: Vec<String>,
-    managed_lines: Vec<ManagedLine>,
+    managed_lines: Vec<Entry>,
     after_lines: Vec<String>,
 }
 
@@ -86,11 +103,9 @@ impl File {
         };
     }
 
-    fn parse(
-        reader: BufReader<fs::File>,
-    ) -> Result<(Vec<String>, Vec<ManagedLine>, Vec<String>), Error> {
+    fn parse(reader: BufReader<fs::File>) -> Result<(Vec<String>, Vec<Entry>, Vec<String>), Error> {
         let mut before_lines: Vec<String> = Vec::new();
-        let mut managed_lines: Vec<ManagedLine> = Vec::new();
+        let mut managed_lines: Vec<Entry> = Vec::new();
         let mut after_lines: Vec<String> = Vec::new();
 
         let mut line_kind = LineKind::Before;
@@ -108,20 +123,7 @@ impl File {
 
             match line_kind {
                 LineKind::Before => before_lines.push(line),
-                LineKind::Managed => {
-                    let re = Regex::new(r"\s+")?;
-                    let matched: Vec<&str> = re.split(&line).collect();
-
-                    let parsed_line = ManagedLine {
-                        ip: matched[0].parse().map_err(Error::new)?,
-                        hostnames: matched[1]
-                            .trim()
-                            .split(" ")
-                            .map(|x| x.to_string())
-                            .collect(),
-                    };
-                    managed_lines.push(parsed_line);
-                }
+                LineKind::Managed => managed_lines.push(line.parse::<Entry>()?),
                 LineKind::After => after_lines.push(line),
             };
         }
@@ -134,7 +136,7 @@ impl File {
 
     pub fn write(
         &mut self,
-        entries: &Entries,
+        entries: &Vec<Entry>,
         writer: &mut impl std::io::Write,
     ) -> Result<Status, Error> {
         if !self.has_changed(entries) {
@@ -148,33 +150,22 @@ impl File {
         }
     }
 
-    fn has_changed(&mut self, entries: &Entries) -> bool {
-        for (index, (ip, hostnames)) in entries.iter().enumerate() {
-            let l = ManagedLine {
-                ip: *ip,
-                hostnames: hostnames.to_vec(),
-            };
-
+    fn has_changed(&mut self, entries: &Vec<Entry>) -> bool {
+        for (index, entry) in entries.iter().enumerate() {
             match self.managed_lines.get(index) {
                 Some(line) => {
-                    if l != *line {
+                    if entry != line {
                         return true;
                     }
                 }
-                None => return true,
+                _ => return true,
             }
         }
         return false;
     }
 
-    fn update(&mut self, entries: &Entries) {
-        self.managed_lines = entries
-            .iter()
-            .map(|(ip, hostnames)| ManagedLine {
-                ip: *ip,
-                hostnames: hostnames.to_vec(),
-            })
-            .collect();
+    fn update(&mut self, entries: &Vec<Entry>) {
+        self.managed_lines = entries.to_vec();
     }
 
     fn render(&mut self, writer: &mut impl std::io::Write) -> Result<(), Error> {

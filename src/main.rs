@@ -1,5 +1,7 @@
+use std::collections;
 use std::fs;
 use std::io;
+use std::net;
 use std::process;
 
 use argh::FromArgs;
@@ -37,10 +39,19 @@ fn main() {
         process::exit(0);
     }
 
-    let cfg: hostsfile::Entries = confy::load_path(&args.config).unwrap_or_else(|err| {
-        eprintln!("failed to load file {}: {}", args.config, err);
-        process::exit(1);
-    });
+    let cfg: collections::HashMap<net::IpAddr, Vec<String>> = confy::load_path(&args.config)
+        .unwrap_or_else(|err| {
+            eprintln!("failed to load file {}: {}", args.config, err);
+            process::exit(1);
+        });
+
+    let entries = cfg
+        .iter()
+        .map(|(ip, hostnames)| hostsfile::Entry {
+            ip: *ip,
+            hostnames: hostnames.to_vec(),
+        })
+        .collect();
 
     let mut hosts_file = hostsfile::File::open(&args.hostsfile).unwrap_or_else(|err| {
         eprintln!("{}", err);
@@ -63,7 +74,7 @@ fn main() {
         }
     };
 
-    match hosts_file.write(&cfg, &mut out) {
+    match hosts_file.write(&entries, &mut out) {
         Ok(status @ hostsfile::Status::NotChanged) | Ok(status @ hostsfile::Status::Changed) => {
             if args.stdout == false {
                 eprintln!("{}", status)

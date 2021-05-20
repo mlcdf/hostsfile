@@ -1,3 +1,6 @@
+use std::fs;
+use std::str;
+
 use hostsfile;
 
 #[test]
@@ -17,22 +20,17 @@ fn test_missing_end_tag_file() {
 
 #[test]
 fn test_file_with_tags() {
-    let mut hostsfile =
-        hostsfile::File::open("tests/fixtures/hostsfile-with-tags".to_string()).unwrap();
-
+    let mut file = hostsfile::File::open("tests/fixtures/hostsfile-with-tags".to_string()).unwrap();
     let mut writer = Vec::new();
-    let mut cfg = hostsfile::Entries::new();
 
-    let ip: std::net::IpAddr = "127.0.0.2".parse().unwrap();
-    cfg.insert(ip, vec!["pi.mlcdf.fr".to_string()]);
+    let mut entries = Vec::<hostsfile::Entry>::new();
+    entries.push("127.0.0.2 pi.mlcdf.fr".parse::<hostsfile::Entry>().unwrap());
 
-    hostsfile.write(&cfg, &mut writer).unwrap();
+    file.write(&entries, &mut writer).unwrap();
+    let got = str::from_utf8(&writer).unwrap();
 
-    let got = std::str::from_utf8(&writer).unwrap();
-
-    let expected = std::fs::read_to_string("tests/fixtures/hostsfile-with-tags.result".to_string())
+    let expected = fs::read_to_string("tests/fixtures/hostsfile-with-tags.result".to_string())
         .expect("Something went wrong reading the file");
 
-    // println!("{:}", got);
-    assert_eq!(got, expected);
+    assert_eq!(expected, got);
 }
